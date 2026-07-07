@@ -12,6 +12,7 @@ jest.mock('@/lib/env', () => ({
 const mockLogin = jest.fn();
 const mockLogout = jest.fn();
 const mockMe = jest.fn();
+const mockApiFetch = jest.fn();
 
 jest.mock('@/lib/api/auth', () => ({
   authApi: {
@@ -20,6 +21,11 @@ jest.mock('@/lib/api/auth', () => ({
     me: (...args: unknown[]) => mockMe(...args),
     refresh: jest.fn(),
   },
+}));
+
+jest.mock('@/lib/api/client', () => ({
+  ApiError: jest.requireActual('@/lib/api/client').ApiError,
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
 
 import { AuthProvider } from '@/lib/auth/AuthContext';
@@ -57,6 +63,7 @@ describe('AuthContext', () => {
     mockMe.mockReset();
     mockLogin.mockReset();
     mockLogout.mockReset();
+    mockApiFetch.mockReset();
   });
 
   it('bootstraps to signed-out with no stored token and no fetch call', async () => {
@@ -219,6 +226,86 @@ describe('AuthContext', () => {
 
     expect(mockLogout).not.toHaveBeenCalled();
     expect(result.current.status).toBe('signed-out');
+  });
+
+  it('request() calls apiFetch with Bearer token attached', async () => {
+    sessionStorageMock.setItem('bo_token', 'stored-token');
+    mockMe.mockResolvedValue({
+      id: 1,
+      name: 'Admin',
+      email: 'admin@example.com',
+      created_at: null,
+    });
+    mockApiFetch.mockResolvedValue({ range: '30d', kpis: {}, daily: [] });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('signed-in'));
+
+    await act(async () => {
+      await result.current.request('/analytics?range=30d');
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledWith('/analytics?range=30d', {
+      token: 'stored-token',
+    });
+  });
+
+  it('request() receiving 401 calls logout and rethrows the error', async () => {
+    sessionStorageMock.setItem('bo_token', 'stored-token');
+    mockMe.mockResolvedValue({
+      id: 1,
+      name: 'Admin',
+      email: 'admin@example.com',
+      created_at: null,
+    });
+    mockLogout.mockResolvedValue({ message: 'Logged out' });
+    const unauthorized = new ApiError(401, 'Unauthorized');
+    mockApiFetch.mockRejectedValue(unauthorized);
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('signed-in'));
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.request('/analytics?range=30d');
+      } catch (error) {
+        caught = error;
+      }
+    });
+
+    expect(caught).toBe(unauthorized);
+    expect(mockLogout).toHaveBeenCalledWith('stored-token');
+    expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('bo_token');
+    expect(result.current.status).toBe('signed-out');
+  });
+
+  it('request() with non-401 error rethrows without logout', async () => {
+    sessionStorageMock.setItem('bo_token', 'stored-token');
+    mockMe.mockResolvedValue({
+      id: 1,
+      name: 'Admin',
+      email: 'admin@example.com',
+      created_at: null,
+    });
+    const serverError = new ApiError(500, 'Server error');
+    mockApiFetch.mockRejectedValue(serverError);
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('signed-in'));
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.request('/analytics?range=30d');
+      } catch (error) {
+        caught = error;
+      }
+    });
+
+    expect(caught).toBe(serverError);
+    expect(mockLogout).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('signed-in');
   });
 });
 

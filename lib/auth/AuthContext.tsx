@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { authApi, type AuthUser } from '@/lib/api/auth';
-import { ApiError } from '@/lib/api/client';
+import { ApiError, apiFetch } from '@/lib/api/client';
 import { env } from '@/lib/env';
 import { AuthError } from '@/lib/auth/AuthError';
 
@@ -31,6 +31,7 @@ interface AuthContextValue {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  request: <T>(path: string, init?: RequestInit) => Promise<T>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -129,6 +130,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'signed-out', token: null, user: null, error: null });
   }, [state.status, state.token]);
 
+  const request = useCallback(
+    async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
+      try {
+        return await apiFetch<T>(path, { ...init, token: state.token ?? undefined });
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          await logout();
+        }
+        throw error;
+      }
+    },
+    [state.token, logout],
+  );
+
   const value = useMemo(
     () => ({
       status: state.status,
@@ -136,8 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       error: state.error,
       login,
       logout,
+      request,
     }),
-    [state.status, state.user, state.error, login, logout],
+    [state.status, state.user, state.error, login, logout, request],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
