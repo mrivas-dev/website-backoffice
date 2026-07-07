@@ -3,9 +3,10 @@
 import { useAuth } from '@/lib/auth/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { DashboardScreen } from '@/components/Dashboard/DashboardScreen';
 
 export default function DashboardPage() {
-  const { status, user, logout } = useAuth();
+  const { status } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -14,10 +15,5 @@ export default function DashboardPage() {
 
   if (status !== 'signed-in' && status !== 'demo') return null;
 
-  return (
-    <main data-testid="dashboard-stub">
-      <p>Signed in{user ? ` as ${user.email}` : ''}. Dashboard content lands in a later spec.</p>
-      <button onClick={logout}>$ exit</button>
-    </main>
-  );
+  return <DashboardScreen />;
 }

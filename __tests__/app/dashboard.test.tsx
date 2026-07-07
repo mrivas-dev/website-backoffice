@@ -12,6 +12,10 @@ jest.mock('@/lib/auth/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+jest.mock('@/lib/hooks/useAnalytics', () => ({
+  useAnalytics: () => ({ status: 'loading', refetch: jest.fn() }),
+}));
+
 import DashboardPage from '@/app/dashboard/page';
 
 describe('DashboardPage', () => {
@@ -19,7 +23,7 @@ describe('DashboardPage', () => {
     jest.clearAllMocks();
   });
 
-  it('renders stub content when status is signed-in', () => {
+  it('renders DashboardScreen when status is signed-in', () => {
     mockUseAuth.mockReturnValue({
       status: 'signed-in',
       user: { email: 'admin@example.com' },
@@ -28,12 +32,13 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    expect(screen.getByTestId('dashboard-stub')).toBeInTheDocument();
-    expect(screen.getByText(/Signed in as admin@example.com/)).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-screen')).toBeInTheDocument();
+    expect(screen.getByText('$ analytics --dashboard')).toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard-stub')).not.toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it('renders stub content when status is demo', () => {
+  it('renders DashboardScreen when status is demo', () => {
     mockUseAuth.mockReturnValue({
       status: 'demo',
       user: null,
@@ -42,7 +47,7 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    expect(screen.getByTestId('dashboard-stub')).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-screen')).toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
