@@ -159,6 +159,13 @@ describe('useAnalytics', () => {
     consoleError.mockRestore();
   });
 
+  it('does not fetch when disabled', () => {
+    const { result } = renderHook(() => useAnalytics('30d', false));
+
+    expect(result.current.status).toBe('idle');
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
   it('refetch triggers a new round of five calls with the same range', async () => {
     const { result } = renderHook(() => useAnalytics('30d'));
 

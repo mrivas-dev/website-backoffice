@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { LoginScreenDesktop } from '@/components/Login/LoginScreenDesktop';
 import type { LoginScreenProps } from '@/components/Login/types';
 
@@ -55,6 +55,16 @@ describe('LoginScreenDesktop demo footnote', () => {
     expect(
       screen.getByText('API offline? Any credentials grant demo access.'),
     ).toBeInTheDocument();
+    mockEnv.allowDemoLogin = false;
+  });
+
+  it('renders demo mode button when allowDemoLogin is true and onEnterDemo provided', () => {
+    mockEnv.allowDemoLogin = true;
+    const onEnterDemo = jest.fn();
+    render(<LoginScreenDesktop {...baseProps} onEnterDemo={onEnterDemo} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue in demo mode →' }));
+    expect(onEnterDemo).toHaveBeenCalled();
     mockEnv.allowDemoLogin = false;
   });
 });

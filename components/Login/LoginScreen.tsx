@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/useAuth';
 import { AuthError } from '@/lib/auth/AuthError';
 import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
+import { env } from '@/lib/env';
 import { LoginScreenDesktop } from '@/components/Login/LoginScreenDesktop';
 import { LoginScreenMobile } from '@/components/Login/LoginScreenMobile';
 
 export function LoginScreen() {
-  const { login } = useAuth();
+  const { login, enterDemo } = useAuth();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const [email, setEmail] = useState('');
@@ -51,6 +52,12 @@ export function LoginScreen() {
       if (e.key === 'Enter') void handleSubmit();
     },
     onSubmit: () => void handleSubmit(),
+    onEnterDemo: env.allowDemoLogin
+      ? () => {
+          enterDemo();
+          router.replace('/dashboard');
+        }
+      : undefined,
     buttonText: submitting ? 'signing in...' : 'Sign in →',
   };
 

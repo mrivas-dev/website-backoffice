@@ -81,7 +81,7 @@ function buildReferrerRows(
 export function DashboardScreen() {
   const { user, status, logout } = useAuth();
   const [range, setRange] = useState<'7d' | '30d' | '90d'>('30d');
-  const analytics = useAnalytics(range);
+  const analytics = useAnalytics(range, status !== 'demo');
   const isDemo = status === 'demo';
   const isLoading = isDemo ? false : analytics.status === 'loading';
   const data = analytics.status === 'success' ? analytics.data : null;
@@ -96,7 +96,7 @@ export function DashboardScreen() {
       />
 
       <div style={contentStyle}>
-        {analytics.status === 'error' && (
+        {analytics.status === 'error' && !isDemo && (
           <div role="alert" style={errorStyle}>
             <p>{analytics.message}</p>
             <button type="button" style={retryButtonStyle} onClick={analytics.refetch}>

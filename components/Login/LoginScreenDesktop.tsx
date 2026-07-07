@@ -98,6 +98,7 @@ export function LoginScreenDesktop({
   onPasswordChange,
   onKeyDown,
   onSubmit,
+  onEnterDemo,
   buttonText,
 }: LoginScreenProps) {
   return (
@@ -148,7 +149,25 @@ export function LoginScreenDesktop({
         </button>
 
         {env.allowDemoLogin && (
-          <p style={footnoteStyle}>API offline? Any credentials grant demo access.</p>
+          <>
+            <p style={footnoteStyle}>API offline? Any credentials grant demo access.</p>
+            {onEnterDemo && (
+              <button
+                type="button"
+                style={{
+                  ...buttonStyle,
+                  marginTop: 12,
+                  background: 'transparent',
+                  color: '#4ade80',
+                  border: '1px solid #1a1a2e',
+                }}
+                disabled={submitting}
+                onClick={onEnterDemo}
+              >
+                Continue in demo mode →
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

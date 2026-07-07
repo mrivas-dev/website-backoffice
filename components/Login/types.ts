@@ -7,5 +7,6 @@ export interface LoginScreenProps {
   onPasswordChange: (value: string) => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
   onSubmit: () => void;
+  onEnterDemo?: () => void;
   buttonText: string;
 }

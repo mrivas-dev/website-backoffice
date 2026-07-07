@@ -30,6 +30,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
+  enterDemo: () => void;
   logout: () => Promise<void>;
   request: <T>(path: string, init?: RequestInit) => Promise<T>;
 }
@@ -53,6 +54,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!storedToken) {
         if (!cancelled) {
           setState({ status: 'signed-out', token: null, user: null, error: null });
+        }
+        return;
+      }
+
+      if (storedToken === '__demo__') {
+        if (!cancelled) {
+          if (env.allowDemoLogin) {
+            setState({ status: 'demo', token: '__demo__', user: null, error: null });
+          } else {
+            sessionStorage.removeItem(TOKEN_KEY);
+            setState({ status: 'signed-out', token: null, user: null, error: null });
+          }
         }
         return;
       }
@@ -104,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (env.allowDemoLogin) {
+        sessionStorage.setItem(TOKEN_KEY, '__demo__');
         setState({ status: 'demo', token: '__demo__', user: null, error: null });
         return;
       }
@@ -112,8 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const enterDemo = useCallback(() => {
+    if (!env.allowDemoLogin) return;
+    sessionStorage.setItem(TOKEN_KEY, '__demo__');
+    setState({ status: 'demo', token: '__demo__', user: null, error: null });
+  }, []);
+
   const logout = useCallback(async () => {
     if (state.status === 'demo') {
+      sessionStorage.removeItem(TOKEN_KEY);
       setState({ status: 'signed-out', token: null, user: null, error: null });
       return;
     }
@@ -135,13 +156,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         return await apiFetch<T>(path, { ...init, token: state.token ?? undefined });
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
+        if (error instanceof ApiError && error.status === 401 && state.status !== 'demo') {
           await logout();
         }
         throw error;
       }
     },
-    [state.token, logout],
+    [state.token, state.status, logout],
   );
 
   const value = useMemo(
@@ -150,10 +171,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: state.user,
       error: state.error,
       login,
+      enterDemo,
       logout,
       request,
     }),
-    [state.status, state.user, state.error, login, logout, request],
+    [state.status, state.user, state.error, login, enterDemo, logout, request],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -228,6 +228,54 @@ describe('AuthContext', () => {
     expect(result.current.status).toBe('signed-out');
   });
 
+  it('enterDemo sets demo status and persists demo token when allowDemoLogin is true', async () => {
+    mockEnv.allowDemoLogin = true;
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('signed-out'));
+
+    act(() => {
+      result.current.enterDemo();
+    });
+
+    expect(result.current.status).toBe('demo');
+    expect(sessionStorageMock.setItem).toHaveBeenCalledWith('bo_token', '__demo__');
+  });
+
+  it('bootstrap restores demo status from stored demo token', async () => {
+    mockEnv.allowDemoLogin = true;
+    sessionStorageMock.setItem('bo_token', '__demo__');
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('demo'));
+
+    expect(mockMe).not.toHaveBeenCalled();
+  });
+
+  it('request() receiving 401 in demo mode does not logout', async () => {
+    mockEnv.allowDemoLogin = true;
+    sessionStorageMock.setItem('bo_token', '__demo__');
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('demo'));
+
+    const unauthorized = new ApiError(401, 'Route [login] not defined.');
+    mockApiFetch.mockRejectedValue(unauthorized);
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.request('/analytics?range=30d');
+      } catch (error) {
+        caught = error;
+      }
+    });
+
+    expect(caught).toBe(unauthorized);
+    expect(mockLogout).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('demo');
+  });
+
   it('request() calls apiFetch with Bearer token attached', async () => {
     sessionStorageMock.setItem('bo_token', 'stored-token');
     mockMe.mockResolvedValue({

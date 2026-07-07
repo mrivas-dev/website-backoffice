@@ -21,16 +21,22 @@ interface DashboardData {
 }
 
 type State =
+  | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'success'; data: DashboardData };
 
-export function useAnalytics(range: RangeKey) {
+export function useAnalytics(range: RangeKey, enabled = true) {
   const { request } = useAuth();
-  const [state, setState] = useState<State>({ status: 'loading' });
+  const [state, setState] = useState<State>(enabled ? { status: 'loading' } : { status: 'idle' });
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    if (!enabled) {
+      setState({ status: 'idle' });
+      return;
+    }
+
     let cancelled = false;
     setState({ status: 'loading' });
 
@@ -58,7 +64,7 @@ export function useAnalytics(range: RangeKey) {
     return () => {
       cancelled = true;
     };
-  }, [request, range, reloadToken]);
+  }, [request, range, reloadToken, enabled]);
 
   return { ...state, refetch: () => setReloadToken((n) => n + 1) };
 }

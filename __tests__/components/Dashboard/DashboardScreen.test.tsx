@@ -137,7 +137,7 @@ describe('DashboardScreen', () => {
 
     await userEvent.click(screen.getByRole('button', { name: '7d' }));
 
-    expect(mockUseAnalytics).toHaveBeenLastCalledWith('7d');
+    expect(mockUseAnalytics).toHaveBeenLastCalledWith('7d', true);
   });
 
   it('calls logout when exit button clicked', async () => {
@@ -162,5 +162,23 @@ describe('DashboardScreen', () => {
     render(<DashboardScreen />);
 
     expect(screen.getAllByText('demo mode')).toHaveLength(5);
+  });
+
+  it('hides analytics error banner in demo mode', () => {
+    mockUseAuth.mockReturnValue({
+      status: 'demo',
+      user: null,
+      logout: mockLogout,
+    });
+    mockUseAnalytics.mockReturnValue({
+      status: 'error',
+      message: 'Route [login] not defined.',
+      refetch: mockRefetch,
+    });
+
+    render(<DashboardScreen />);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText('Route [login] not defined.')).not.toBeInTheDocument();
   });
 });
