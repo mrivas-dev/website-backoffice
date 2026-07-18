@@ -31,6 +31,8 @@ export function LoginScreen() {
     } catch (e) {
       if (e instanceof AuthError && e.kind === 'invalid-credentials') {
         setError('Invalid email or password.');
+      } else if (e instanceof AuthError && e.kind === 'rate-limited') {
+        setError('Too many attempts. Please wait a minute and try again.');
       } else if (e instanceof AuthError && e.kind === 'unreachable') {
         setError('Unable to reach the server. Please try again.');
       } else {

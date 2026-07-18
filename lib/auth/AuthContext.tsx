@@ -116,6 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new AuthError('invalid-credentials');
       }
 
+      if (error instanceof ApiError && error.status === 429) {
+        throw new AuthError('rate-limited');
+      }
+
       if (env.allowDemoLogin) {
         sessionStorage.setItem(TOKEN_KEY, '__demo__');
         setState({ status: 'demo', token: '__demo__', user: null, error: null });

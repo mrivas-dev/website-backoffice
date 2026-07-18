@@ -158,6 +158,20 @@ describe('LoginScreen', () => {
     });
   });
 
+  it('shows rate-limit message on AuthError rate-limited', async () => {
+    mockLogin.mockRejectedValue(new AuthError('rate-limited'));
+    render(<LoginScreen />);
+    await userEvent.type(screen.getByLabelText('Email'), 'admin@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'password');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in →' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Too many attempts. Please wait a minute and try again.'),
+      ).toBeInTheDocument();
+    });
+  });
+
   it('shows signing in... while login promise is pending', async () => {
     let resolveLogin: () => void;
     mockLogin.mockImplementation(

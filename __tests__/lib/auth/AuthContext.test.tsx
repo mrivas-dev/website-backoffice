@@ -185,6 +185,48 @@ describe('AuthContext', () => {
     expect(result.current.status).toBe('demo');
   });
 
+  it('login with 429 throws AuthError rate-limited and stays signed-out', async () => {
+    mockEnv.allowDemoLogin = false;
+    mockLogin.mockRejectedValue(new ApiError(429, 'Too many requests.'));
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('signed-out'));
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.login('admin@example.com', 'password');
+      } catch (e) {
+        caught = e;
+      }
+    });
+
+    expect(caught).toBeInstanceOf(AuthError);
+    expect((caught as AuthError).kind).toBe('rate-limited');
+    expect(result.current.status).toBe('signed-out');
+  });
+
+  it('login with 429 does not enter demo mode even when allowDemoLogin is true', async () => {
+    mockEnv.allowDemoLogin = true;
+    mockLogin.mockRejectedValue(new ApiError(429, 'Too many requests.'));
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('signed-out'));
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.login('admin@example.com', 'password');
+      } catch (e) {
+        caught = e;
+      }
+    });
+
+    expect(caught).toBeInstanceOf(AuthError);
+    expect((caught as AuthError).kind).toBe('rate-limited');
+    expect(result.current.status).toBe('signed-out');
+  });
+
   it('logout from signed-in calls authApi.logout, clears storage, sets signed-out', async () => {
     sessionStorageMock.setItem('bo_token', 'stored-token');
     mockMe.mockResolvedValue({
