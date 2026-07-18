@@ -10,8 +10,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Portfolio Analytics',
-  description: 'Portfolio analytics backoffice',
+  title: 'Mrivas Admin',
+  description: 'Mrivas Admin backoffice',
 };
 
 export default function RootLayout({
